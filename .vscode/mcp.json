@@ -1,0 +1,12 @@
+{
+  "servers": {
+    "dmn-js-mcp": {
+      "command": "npm",
+      "args": [
+        "run",
+        "dev"
+      ],
+      "env": {}
+    }
+  }
+}

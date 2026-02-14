@@ -1,0 +1,68 @@
+{
+  "name": "dmn-js-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for creating and manipulating DMN diagrams using dmn-js",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "typecheck": "tsc --noEmit",
+    "prepare": "npm run build",
+    "watch": "node esbuild.config.mjs --watch",
+    "dev": "nodemon",
+    "start": "node dist/index.js",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint src/ test/",
+    "lint:fix": "eslint src/ test/ --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "mcp",
+    "dmn",
+    "dmn-js",
+    "decision",
+    "diagram",
+    "feel"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16"
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "camunda-dmn-moddle": "^1.3.1",
+    "dmn-js": "^17.6.0",
+    "dmn-moddle": "^12.0.1",
+    "elkjs": "^0.11.0",
+    "feelin": "^6.2.0",
+    "jsdom": "^25.0.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@types/jsdom": "^21.1.7",
+    "@types/node": "^22.10.2",
+    "@vitest/coverage-v8": "^4.0.18",
+    "esbuild": "^0.27.3",
+    "eslint": "^9.39.2",
+    "eslint-plugin-sonarjs": "^3.0.7",
+    "eslint-plugin-unicorn": "^63.0.0",
+    "eslint-plugin-vitest": "^0.5.4",
+    "nodemon": "^3.1.11",
+    "prettier": "^3.8.1",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.54.0",
+    "vitest": "^4.0.18"
+  },
+  "bin": {
+    "dmn-js-mcp": "./dist/index.js"
+  }
+}

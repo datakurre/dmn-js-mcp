@@ -1,0 +1,134 @@
+/**
+ * Optional file-backed persistence for DMN diagrams.
+ *
+ * When enabled via `enablePersistence(dir)`, diagrams are automatically
+ * saved to `.dmn` files in the specified directory after mutations,
+ * and loaded on startup.
+ */
+
+import * as fs from 'node:fs/promises';
+import * as fsSync from 'node:fs';
+import * as path from 'node:path';
+import { getAllDiagrams, storeDiagram, createModelerFromXml } from './diagram-manager';
+import { type DiagramState } from './types';
+
+let persistDir: string | null = null;
+
+/**
+ * Enable file-backed persistence.  Diagrams will be saved to `dir`
+ * as `<diagramId>.dmn` files.  Existing `.dmn` files in the
+ * directory are loaded into memory.
+ */
+export async function enablePersistence(dir: string): Promise<number> {
+  persistDir = path.resolve(dir);
+  if (!fsSync.existsSync(persistDir)) {
+    await fs.mkdir(persistDir, { recursive: true });
+  }
+  return loadDiagrams();
+}
+
+/** Disable persistence. */
+export function disablePersistence(): void {
+  persistDir = null;
+}
+
+/** Check whether persistence is enabled. */
+export function isPersistenceEnabled(): boolean {
+  return persistDir !== null;
+}
+
+/** Get the persistence directory (or null). */
+export function getPersistDir(): string | null {
+  return persistDir;
+}
+
+/**
+ * Save a single diagram to disk (if persistence is enabled).
+ * After writing, re-reads the file and validates the XML can be parsed
+ * to catch any corruption early.
+ */
+export async function persistDiagram(diagramId: string, diagram: DiagramState): Promise<void> {
+  if (!persistDir) return;
+  try {
+    const { xml } = await diagram.modeler.saveXML({ format: true });
+    const filePath = path.join(persistDir, `${diagramId}.dmn`);
+    const meta = { name: diagram.name };
+    const metaPath = path.join(persistDir, `${diagramId}.meta.json`);
+    await fs.writeFile(filePath, xml || '', 'utf-8');
+    await fs.writeFile(metaPath, JSON.stringify(meta), 'utf-8');
+
+    // Post-write validation: re-read and verify XML integrity
+    const written = await fs.readFile(filePath, 'utf-8');
+    if (!written.includes('</definitions>') && !written.includes('</dmn:definitions>')) {
+      console.error(
+        `[persistence] Post-write validation failed for ${diagramId}: ` +
+          'written file is missing closing </definitions> tag'
+      );
+    }
+  } catch (err) {
+    console.error(`[persistence] failed to save diagram ${diagramId}:`, err);
+  }
+}
+
+/**
+ * Save all in-memory diagrams to disk.
+ */
+export async function persistAllDiagrams(): Promise<number> {
+  if (!persistDir) return 0;
+  let count = 0;
+  for (const [id, diagram] of getAllDiagrams()) {
+    await persistDiagram(id, diagram);
+    count++;
+  }
+  return count;
+}
+
+/**
+ * Load diagrams from the persistence directory into memory.
+ */
+async function loadDiagrams(): Promise<number> {
+  if (!persistDir) return 0;
+  let count = 0;
+  const files = (await fs.readdir(persistDir)).filter((f) => f.endsWith('.dmn'));
+
+  for (const file of files) {
+    try {
+      const diagramId = file.replace('.dmn', '');
+      const filePath = path.join(persistDir, file);
+      const xml = await fs.readFile(filePath, 'utf-8');
+      const metaPath = path.join(persistDir, `${diagramId}.meta.json`);
+      let name: string | undefined;
+      if (fsSync.existsSync(metaPath)) {
+        try {
+          const metaContent = await fs.readFile(metaPath, 'utf-8');
+          const meta = JSON.parse(metaContent);
+          name = meta.name;
+        } catch (err) {
+          console.error(`[persistence] failed to load meta for ${diagramId}:`, err);
+        }
+      }
+
+      const modeler = await createModelerFromXml(xml);
+      storeDiagram(diagramId, { modeler, xml, name });
+      count++;
+    } catch (err) {
+      console.error(`[persistence] failed to load diagram ${file}:`, err);
+    }
+  }
+  return count;
+}
+
+/**
+ * Remove a diagram's persisted files from disk.
+ */
+export async function removePersisted(diagramId: string): Promise<void> {
+  if (!persistDir) return;
+  try {
+    const filePath = path.join(persistDir, `${diagramId}.dmn`);
+    const metaPath = path.join(persistDir, `${diagramId}.meta.json`);
+    if (fsSync.existsSync(filePath)) await fs.unlink(filePath);
+    if (fsSync.existsSync(metaPath)) await fs.unlink(metaPath);
+  } catch (err) {
+    console.error(`[persistence] failed to remove persisted files for ${diagramId}:`, err);
+  }
+}
