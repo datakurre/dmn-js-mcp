@@ -29,6 +29,14 @@ import { handleSummarizeDiagram, TOOL_DEFINITION as SUMMARIZE_DEF } from './core
 import { handleDmnHistory, TOOL_DEFINITION as HISTORY_DEF } from './core/history';
 import { handleBatchOperations, TOOL_DEFINITION as BATCH_DEF } from './core/batch';
 import { handleListVariables, TOOL_DEFINITION as LIST_VARIABLES_DEF } from './core/list-variables';
+import {
+  handleSetCamundaProperties,
+  TOOL_DEFINITION as CAMUNDA_PROPERTIES_DEF,
+} from './core/camunda-properties';
+
+// ── Layout ─────────────────────────────────────────────────────────────────
+
+import { handleLayoutDiagram, TOOL_DEFINITION as LAYOUT_DEF } from './layout/layout';
 
 // ── Elements: DRD element CRUD ─────────────────────────────────────────────
 
@@ -64,6 +72,10 @@ import { handleAddOutput, TOOL_DEFINITION as ADD_OUTPUT_DEF } from './decision-t
 import { handleAddRule, TOOL_DEFINITION as ADD_RULE_DEF } from './decision-table/add-rule';
 import { handleEditCell, TOOL_DEFINITION as EDIT_CELL_DEF } from './decision-table/edit-cell';
 import { handleRemoveRule, TOOL_DEFINITION as REMOVE_RULE_DEF } from './decision-table/remove-rule';
+import {
+  handleAnalyzeDecisionTable,
+  TOOL_DEFINITION as ANALYZE_DECISION_TABLE_DEF,
+} from './decision-table/analyze';
 
 // ── Literal Expression ─────────────────────────────────────────────────────
 
@@ -102,6 +114,9 @@ const TOOL_REGISTRY: ToolRegistration[] = [
   { definition: HISTORY_DEF, handler: handleDmnHistory },
   { definition: BATCH_DEF, handler: handleBatchOperations },
   { definition: LIST_VARIABLES_DEF, handler: handleListVariables },
+  { definition: CAMUNDA_PROPERTIES_DEF, handler: handleSetCamundaProperties },
+  // Layout
+  { definition: LAYOUT_DEF, handler: handleLayoutDiagram },
   // DRD Elements
   { definition: ADD_ELEMENT_DEF, handler: handleAddElement },
   { definition: CONNECT_DEF, handler: handleConnect },
@@ -118,6 +133,7 @@ const TOOL_REGISTRY: ToolRegistration[] = [
   { definition: ADD_RULE_DEF, handler: handleAddRule },
   { definition: EDIT_CELL_DEF, handler: handleEditCell },
   { definition: REMOVE_RULE_DEF, handler: handleRemoveRule },
+  { definition: ANALYZE_DECISION_TABLE_DEF, handler: handleAnalyzeDecisionTable },
   // Literal Expression
   { definition: SET_LITERAL_EXPRESSION_DEF, handler: handleSetLiteralExpression },
   { definition: GET_LITERAL_EXPRESSION_DEF, handler: handleGetLiteralExpression },
@@ -157,6 +173,9 @@ export async function dispatchToolCall(name: string, args: any): Promise<ToolRes
 
 export {
   handleCreateDiagram,
+  handleLayoutDiagram,
+  handleSetCamundaProperties,
+  handleAnalyzeDecisionTable,
   handleDeleteDiagram,
   handleListDiagrams,
   handleImportXml,
