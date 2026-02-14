@@ -20,6 +20,11 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
+  ListResourcesRequestSchema,
+  ListResourceTemplatesRequestSchema,
+  ReadResourceRequestSchema,
+  ListPromptsRequestSchema,
+  GetPromptRequestSchema,
   McpError,
   ErrorCode,
 } from '@modelcontextprotocol/sdk/types.js';
@@ -27,6 +32,8 @@ import { type ToolModule } from './module';
 import { dmnModule } from './dmn-module';
 import { enablePersistence } from './persistence';
 import type { HintLevel } from './types';
+import { RESOURCE_TEMPLATES, listResources, readResource } from './resources';
+import { listPrompts, getPrompt } from './prompts';
 
 // ── CLI argument parsing ───────────────────────────────────────────────────
 
@@ -107,7 +114,7 @@ const modules: ToolModule[] = [dmnModule];
 
 const server = new Server(
   { name: 'dmn-js-mcp', version: '0.1.0' },
-  { capabilities: { tools: {} } }
+  { capabilities: { tools: {}, resources: {}, prompts: {} } }
 );
 
 // ── Tool handlers ──────────────────────────────────────────────────────────
@@ -125,6 +132,32 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any): Promise<an
   }
 
   throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
+});
+
+// ── Resource handlers ──────────────────────────────────────────────────────
+
+server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+  resources: listResources(),
+}));
+
+server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => ({
+  resourceTemplates: RESOURCE_TEMPLATES,
+}));
+
+server.setRequestHandler(ReadResourceRequestSchema, async (request: any) => {
+  const uri: string = request.params.uri;
+  return readResource(uri);
+});
+
+// ── Prompt handlers ────────────────────────────────────────────────────────
+
+server.setRequestHandler(ListPromptsRequestSchema, async () => ({
+  prompts: listPrompts(),
+}));
+
+server.setRequestHandler(GetPromptRequestSchema, async (request: any) => {
+  const { name, arguments: args } = request.params;
+  return getPrompt(name, args || {});
 });
 
 async function main() {

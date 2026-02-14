@@ -25,6 +25,10 @@ import { handleListDiagrams, TOOL_DEFINITION as LIST_DIAGRAMS_DEF } from './core
 import { handleImportXml, TOOL_DEFINITION as IMPORT_XML_DEF } from './core/import-xml';
 import { handleExportDmn, TOOL_DEFINITION as EXPORT_DMN_DEF } from './core/export';
 import { handleValidate, TOOL_DEFINITION as VALIDATE_DEF } from './core/validate';
+import { handleSummarizeDiagram, TOOL_DEFINITION as SUMMARIZE_DEF } from './core/summarize';
+import { handleDmnHistory, TOOL_DEFINITION as HISTORY_DEF } from './core/history';
+import { handleBatchOperations, TOOL_DEFINITION as BATCH_DEF } from './core/batch';
+import { handleListVariables, TOOL_DEFINITION as LIST_VARIABLES_DEF } from './core/list-variables';
 
 // ── Elements: DRD element CRUD ─────────────────────────────────────────────
 
@@ -94,6 +98,10 @@ const TOOL_REGISTRY: ToolRegistration[] = [
   { definition: DELETE_DIAGRAM_DEF, handler: handleDeleteDiagram },
   { definition: LIST_DIAGRAMS_DEF, handler: handleListDiagrams },
   { definition: VALIDATE_DEF, handler: handleValidate },
+  { definition: SUMMARIZE_DEF, handler: handleSummarizeDiagram },
+  { definition: HISTORY_DEF, handler: handleDmnHistory },
+  { definition: BATCH_DEF, handler: handleBatchOperations },
+  { definition: LIST_VARIABLES_DEF, handler: handleListVariables },
   // DRD Elements
   { definition: ADD_ELEMENT_DEF, handler: handleAddElement },
   { definition: CONNECT_DEF, handler: handleConnect },
@@ -154,6 +162,10 @@ export {
   handleImportXml,
   handleExportDmn,
   handleValidate,
+  handleSummarizeDiagram,
+  handleDmnHistory,
+  handleBatchOperations,
+  handleListVariables,
   handleAddElement,
   handleConnect,
   handleDeleteElement,
