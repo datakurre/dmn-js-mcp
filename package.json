@@ -2,7 +2,11 @@
   "name": "dmn-js-mcp",
   "version": "1.0.0",
   "description": "MCP server for creating and manipulating DMN diagrams using dmn-js",
-  "main": "dist/index.js",
+  "main": "dist/lib.js",
+  "exports": {
+    ".": "./dist/lib.js",
+    "./cli": "./dist/index.js"
+  },
   "scripts": {
     "build": "node esbuild.config.mjs",
     "typecheck": "tsc --noEmit",
@@ -34,6 +38,7 @@
   },
   "files": [
     "dist/",
+    "src/",
     "README.md",
     "LICENSE"
   ],
