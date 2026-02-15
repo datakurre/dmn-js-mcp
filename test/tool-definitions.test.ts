@@ -54,10 +54,11 @@ describe('tool-definitions', () => {
     expect(tool.inputSchema.required).toContain('elementType');
   });
 
-  test('export_dmn requires diagramId and format', () => {
+  test('export_dmn requires diagramId, format, and filePath', () => {
     const tool = TOOL_DEFINITIONS.find((t) => t.name === 'export_dmn')!;
     expect(tool.inputSchema.required).toContain('diagramId');
     expect(tool.inputSchema.required).toContain('format');
+    expect(tool.inputSchema.required).toContain('filePath');
   });
 
   test('connect_dmn_elements requires diagramId, sourceElementId, targetElementId', () => {

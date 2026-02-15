@@ -160,7 +160,7 @@ const PROMPTS: PromptDefinition[] = [
               `   Each rule has input entries (FEEL unary tests) and output entries.\n` +
               `   Common input patterns: \`"Premium"\`, \`>= 1000\`, \`[100..500]\`, \`not("Basic")\`\n` +
               `6. **Validate**: Use \`summarize_dmn_diagram\` to check structure and issues\n` +
-              `7. **Export**: Use \`export_dmn\` to get the final DMN XML`,
+              `7. **Export**: Use \`export_dmn\` with a \`filePath\` to write the final DMN XML to disk`,
           },
         },
       ];
@@ -212,7 +212,7 @@ const PROMPTS: PromptDefinition[] = [
               `   - Build a decision table (add_dmn_column, add_dmn_rule)\n` +
               `   - Set a literal expression (set_dmn_literal_expression)\n` +
               `6. **Review & validate**: Use \`summarize_dmn_diagram\` to verify structure and check for issues\n` +
-              `7. **Export**: Use \`export_dmn\` to get the final DMN XML\n\n` +
+              `7. **Export**: Use \`export_dmn\` with a \`filePath\` to write the final DMN XML to disk\n\n` +
               `**Best practices:**\n` +
               `- Every Decision should have at least one incoming requirement\n` +
               `- InputData elements are leaf nodes (no incoming, only outgoing)\n` +

@@ -8,8 +8,9 @@ MCP (Model Context Protocol) server that lets AI assistants create and manipulat
 
 **When working with `.dmn` files, always use the DMN MCP tools instead of editing DMN XML directly.** The MCP tools ensure valid DMN 1.3 structure, proper diagram layout coordinates, and semantic correctness that hand-editing XML cannot guarantee.
 
-- **To modify an existing `.dmn` file:** use `import_dmn_xml` to load it, make changes with MCP tools, then `export_dmn` and write the result back.
-- **To create a new diagram:** use `create_dmn_diagram`, build it with DRD and decision table tools, then `export_dmn`.
+- **To modify an existing `.dmn` file:** use `import_dmn_xml` to load it, make changes with MCP tools, then `export_dmn` with a `filePath` to write the result back.
+- **To create a new diagram:** use `create_dmn_diagram`, build it with DRD and decision table tools, then `export_dmn` with a `filePath` to write to disk.
+- `export_dmn` **requires** `filePath` — the tool always writes to the file system. Set `returnContent: true` only if you also need the raw XML/SVG in the response.
 - **Never** use `replace_string_in_file` or other text-editing tools on `.dmn` XML.
 
 ## Tech Stack
