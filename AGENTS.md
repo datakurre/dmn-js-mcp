@@ -32,23 +32,29 @@ MCP (Model Context Protocol) server that lets AI assistants create and manipulat
 
 Modular `src/` layout, communicates over **stdio** using the MCP SDK. See [`docs/architecture.md`](docs/architecture.md) for a full dependency diagram and module boundary rules.
 
-| File / Directory            | Responsibility                                                                                    |
-| --------------------------- | ------------------------------------------------------------------------------------------------- |
-| `src/index.ts`              | Entry point — wires MCP server, transport, and tool modules                                       |
-| `src/module.ts`             | Generic `ToolModule` interface for pluggable editor back-ends (BPMN, DMN, Forms, …)               |
-| `src/dmn-module.ts`         | DMN tool module — registers DMN tools and dispatch with the generic server                        |
-| `src/types.ts`              | Shared interfaces (`DiagramState`, `ToolResult`, `DmnModeler`, `DmnViewType`)                     |
-| `src/dmn-types.ts`          | TypeScript interfaces for dmn-js DRD services (`Modeling`, `ElementRegistry`, `DrdFactory`, etc.) |
-| `src/constants.ts`          | Centralised magic numbers (`STANDARD_DMN_GAP`, `ELEMENT_SIZES` for DRD elements)                  |
-| `src/headless-canvas.ts`    | jsdom setup, lazy `DmnModeler` init                                                               |
-| `src/headless-polyfills.ts` | SVG/CSS polyfills for headless dmn-js (SVGMatrix, getBBox, transform with DOM sync, etc.)         |
-| `src/headless-bbox.ts`      | Element-type-aware bounding box estimation                                                        |
-| `src/diagram-manager.ts`    | In-memory `Map<string, DiagramState>` store, modeler creation helpers                             |
-| `src/tool-definitions.ts`   | Thin barrel collecting co-located `TOOL_DEFINITION` exports from handlers                         |
-| `src/handlers/index.ts`     | Handler barrel + `dispatchToolCall` router + unified TOOL_REGISTRY                                |
-| `src/errors.ts`             | Machine-readable error codes and McpError factory functions                                       |
-| `src/persistence.ts`        | Optional file-backed diagram persistence — auto-save to `.dmn` files, load on startup             |
-| `src/shared/index.ts`       | Cross-cutting type re-export barrel                                                               |
+| File / Directory                 | Responsibility                                                                                    |
+| -------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `src/index.ts`                   | Entry point — wires MCP server, transport, and tool modules                                       |
+| `src/module.ts`                  | Generic `ToolModule` interface for pluggable editor back-ends (BPMN, DMN, Forms, …)               |
+| `src/dmn-module.ts`              | DMN tool module — registers DMN tools and dispatch with the generic server                        |
+| `src/types.ts`                   | Shared interfaces (`DiagramState`, `ToolResult`, `DmnModeler`, `DmnViewType`)                     |
+| `src/dmn-types.ts`               | TypeScript interfaces for dmn-js DRD services (`Modeling`, `ElementRegistry`, `DrdFactory`, etc.) |
+| `src/constants.ts`               | Centralised magic numbers (`STANDARD_DMN_GAP`, `ELEMENT_SIZES` for DRD elements)                  |
+| `src/headless-canvas.ts`         | jsdom setup, lazy `DmnModeler` init                                                               |
+| `src/headless-polyfills.ts`      | SVG/CSS polyfills for headless dmn-js (SVGMatrix, getBBox, transform with DOM sync, etc.)         |
+| `src/headless-bbox.ts`           | Element-type-aware bounding box estimation                                                        |
+| `src/diagram-manager.ts`         | In-memory `Map<string, DiagramState>` store, modeler creation helpers                             |
+| `src/tool-definitions.ts`        | Thin barrel re-exporting `TOOL_DEFINITIONS` from handlers                                         |
+| `src/handlers/index.ts`          | Handler barrel + `dispatchToolCall` router + unified TOOL_REGISTRY                                |
+| `src/errors.ts`                  | Machine-readable error codes and McpError factory functions                                       |
+| `src/persistence.ts`             | Optional file-backed diagram persistence — auto-save to `.dmn` files, load on startup             |
+| `src/lib.ts`                     | Library entry point for integration with other MCP servers (e.g. bpmn-js-mcp)                     |
+| `src/prompts.ts`                 | MCP Prompts — reusable step-by-step modeling workflows (decision tables, DRDs, batch patterns)    |
+| `src/resources.ts`               | MCP Resources — `dmn://` URI endpoints for diagram summary, validation, variables, XML            |
+| `src/handlers/diagram-access.ts` | Shared helpers for accessing diagram modeler, viewer, and element registry                        |
+| `src/handlers/helpers.ts`        | Common handler utilities (JSON result builders, XML sync, element counts)                         |
+| `src/handlers/validation.ts`     | Argument validation helpers (`validateArgs`, `requireElement`, etc.)                              |
+| `src/shared/index.ts`            | Cross-cutting type re-export barrel                                                               |
 
 **Core pattern:**
 
@@ -95,14 +101,21 @@ The DRD view uses `diagram-js` (same as bpmn-js), so headless polyfills are shar
 
 **Every tool name includes `dmn`** to avoid collisions with other MCPs (e.g. bpmn-js-mcp).
 
-Registered tools (20):
+Registered tools (18):
 
-- **Core:** `create_dmn_diagram`, `import_dmn_xml`, `export_dmn`, `delete_dmn_diagram`, `summarize_dmn_diagram`, `dmn_history`, `batch_dmn_operations`
+- **Core:** `create_dmn_diagram`, `export_dmn`, `delete_dmn_diagram`, `summarize_dmn_diagram`, `dmn_history`, `batch_dmn_operations`
 - **Layout:** `layout_dmn_diagram`
 - **DRD Elements:** `add_dmn_element`, `connect_dmn_elements`, `delete_dmn_element`, `list_dmn_elements`, `set_dmn_element_properties`
-- **Decision Table:** `get_dmn_decision_logic`, `add_dmn_column`, `add_dmn_rule`, `edit_dmn_cell`, `remove_dmn_rule`
+- **Decision Table:** `get_dmn_decision_logic`, `add_dmn_column`, `add_dmn_rule`, `edit_dmn_cell`
 - **Literal Expression:** `set_dmn_literal_expression`
 - **FEEL:** `validate_dmn_feel_expression`
+
+Absorbed tools (available via merged interfaces, not standalone):
+
+- `import_dmn_xml` → merged into `create_dmn_diagram` (accepts `xml`/`filePath` params)
+- `list_dmn_diagrams` → available as `dmn://diagrams` MCP resource
+- `remove_dmn_rule` → merged into `delete_dmn_element` (accepts `decisionId`+`ruleIndex`)
+- `get_dmn_element_properties` → merged into `list_dmn_elements` (accepts `elementId`)
 
 ## Build & Run
 

@@ -12,6 +12,7 @@ graph TD
         index["index.ts"]
         dmnmod["dmn-module.ts"]
         mod["module.ts"]
+        lib["lib.ts"]
     end
 
     subgraph "Core Infrastructure"
@@ -29,10 +30,12 @@ graph TD
     subgraph "Handlers"
         hindex["handlers/index.ts"]
         handlers["handlers/*.ts"]
+        layout["handlers/layout/layout.ts"]
     end
 
-    subgraph "Layout Engine"
-        elk["elk/ (future)"]
+    subgraph "MCP Surface"
+        prompts["prompts.ts"]
+        resources["resources.ts"]
     end
 
     subgraph "Shared Types"
@@ -42,6 +45,10 @@ graph TD
     index --> dmnmod
     dmnmod --> mod
     dmnmod --> hindex
+    dmnmod --> prompts
+    dmnmod --> resources
+
+    lib --> dmnmod
 
     hindex --> handlers
     handlers --> types
@@ -50,7 +57,7 @@ graph TD
     handlers --> errors
     handlers --> dm
     handlers --> persist
-    handlers --> elk
+    layout --> dm
 
     dm --> hc
     hc --> hp
@@ -58,18 +65,24 @@ graph TD
 
     persist --> dm
 
+    resources --> handlers
+    prompts -.-> |"text only"| handlers
+
     shared --> types
     shared --> dmntypes
 
-    style elk fill:#e8f5e9
+    style layout fill:#e8f5e9
+    style lib fill:#e3f2fd
 ```
 
 ## Module Boundaries
 
-| Module          | May import from                                     | Must NOT import from |
-| --------------- | --------------------------------------------------- | -------------------- |
-| `src/elk/`      | `types.ts`, `dmn-types.ts`, `constants.ts`, `elkjs` | `handlers/`          |
-| `src/handlers/` | Everything above                                    | _(no restrictions)_  |
+| Module                 | May import from                                     | Must NOT import from |
+| ---------------------- | --------------------------------------------------- | -------------------- |
+| `src/handlers/layout/` | `types.ts`, `dmn-types.ts`, `constants.ts`, `elkjs` | _(no restrictions)_  |
+| `src/handlers/`        | Everything above                                    | _(no restrictions)_  |
+| `src/prompts.ts`       | `@modelcontextprotocol/sdk`                         | `handlers/`          |
+| `src/resources.ts`     | `diagram-manager`, `handlers/`                      | _(no restrictions)_  |
 
 These rules keep `elk/` as an independent leaf module that can be extracted into a separate package if needed.
 
@@ -78,13 +91,13 @@ These rules keep `elk/` as an independent leaf module that can be extracted into
 ```
 Allowed dependency direction: top → bottom
 
-  index.ts / dmn-module.ts
+  index.ts / dmn-module.ts / lib.ts
            │
-    handlers/index.ts
+    handlers/index.ts ◄── resources.ts
            │
     handlers/*.ts
       │    │
-      │    └──► elk/ (future)
+      │    └──► handlers/layout/layout.ts (elkjs)
       │
       └──► diagram-manager.ts ──► headless-canvas.ts
 ```
@@ -105,18 +118,21 @@ Allowed dependency direction: top → bottom
 | `src/headless-bbox.ts`      | Element-type-aware bounding box estimation                      |
 | `src/diagram-manager.ts`    | In-memory `Map<string, DiagramState>` store                     |
 | `src/persistence.ts`        | Optional file-backed diagram persistence                        |
+| `src/lib.ts`                | Library entry point for integration with other MCP servers      |
+| `src/prompts.ts`            | MCP Prompts — reusable step-by-step modeling workflows          |
+| `src/resources.ts`          | MCP Resources — `dmn://` URI endpoints for diagram data         |
 | `src/tool-definitions.ts`   | Thin re-export of TOOL_DEFINITIONS                              |
 | `src/shared/index.ts`       | Cross-cutting type re-export barrel                             |
 | `src/handlers/`             | One handler file per MCP tool                                   |
 | `src/handlers/index.ts`     | Tool registry + dispatch map + re-exports                       |
-| `src/elk/`                  | ELK-based auto-layout engine for DRD (future)                   |
+| `src/handlers/layout/`      | ELK-based auto-layout engine for DRD (via elkjs)                |
 
 ## Where to Put New Code
 
 ```
 Need to add…                         → Put it in…
 ─────────────────────────────────────────────────────────────────
-A new MCP tool                       → src/handlers/<name>.ts
+A new MCP tool                       → src/handlers/<category>/<name>.ts
                                        (export handler + TOOL_DEFINITION,
                                         add to TOOL_REGISTRY in index.ts)
 
@@ -129,7 +145,11 @@ A polyfill for headless dmn-js       → src/headless-polyfills.ts
 
 Cross-cutting types needed by tests  → src/shared/index.ts (re-export barrel)
 
-A layout algorithm improvement       → src/elk/ (keep behind elk/api.ts)
+A layout algorithm improvement       → src/handlers/layout/layout.ts
+
+A new MCP prompt                     → src/prompts.ts
+
+A new MCP resource                   → src/resources.ts
 ```
 
 ## Core Patterns
