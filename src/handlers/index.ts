@@ -40,7 +40,6 @@ import {
   handleDeleteElement,
   TOOL_DEFINITION as DELETE_ELEMENT_DEF,
 } from './elements/delete-element';
-import { handleMoveElement, TOOL_DEFINITION as MOVE_ELEMENT_DEF } from './elements/move-element';
 import { handleListElements, TOOL_DEFINITION as LIST_ELEMENTS_DEF } from './elements/list-elements';
 import {
   handleGetProperties,
@@ -99,7 +98,6 @@ const TOOL_REGISTRY: ToolRegistration[] = [
   { definition: ADD_ELEMENT_DEF, handler: handleAddElement },
   { definition: CONNECT_DEF, handler: handleConnect },
   { definition: DELETE_ELEMENT_DEF, handler: handleDeleteElement },
-  { definition: MOVE_ELEMENT_DEF, handler: handleMoveElement },
   { definition: LIST_ELEMENTS_DEF, handler: handleListElements },
   { definition: GET_PROPERTIES_DEF, handler: handleGetProperties },
   { definition: SET_PROPERTIES_DEF, handler: handleSetProperties },
@@ -158,7 +156,6 @@ export {
   handleAddElement,
   handleConnect,
   handleDeleteElement,
-  handleMoveElement,
   handleListElements,
   handleGetProperties,
   handleSetProperties,

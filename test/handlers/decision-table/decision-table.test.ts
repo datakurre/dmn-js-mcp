@@ -67,5 +67,75 @@ describe('decision table tools', () => {
       expect(res.success).toBe(true);
       expect(res.ruleIndex).toBeDefined();
     });
+
+    test('adds a rule with inline columns', async () => {
+      const { diagramId } = await createDiagram();
+      const res = parseResult(
+        await handleAddRule({
+          diagramId,
+          decisionId: 'Decision_1',
+          columns: [
+            {
+              columnType: 'input',
+              label: 'Customer Type',
+              expressionText: 'customerType',
+              typeRef: 'string',
+            },
+            {
+              columnType: 'input',
+              label: 'Order Amount',
+              expressionText: 'orderAmount',
+              typeRef: 'integer',
+            },
+            {
+              columnType: 'output',
+              label: 'Discount',
+              name: 'discount',
+              typeRef: 'integer',
+            },
+          ],
+          inputEntries: ['', '"gold"', '>= 1000'],
+          outputEntries: ['', '15'],
+        })
+      );
+      expect(res.success).toBe(true);
+      expect(res.createdColumns).toHaveLength(3);
+      expect(res.createdColumns[0].columnType).toBe('input');
+      expect(res.createdColumns[2].columnType).toBe('output');
+      // Default table has 1 input + 1 output already; we added 2 inputs + 1 output
+      expect(res.inputEntries).toHaveLength(3);
+      expect(res.outputEntries).toHaveLength(2);
+
+      // Verify via get_dmn_decision_logic
+      const logic = parseResult(
+        await handleGetDecisionLogic({ diagramId, decisionId: 'Decision_1' })
+      );
+      expect(logic.inputs).toHaveLength(3);
+      expect(logic.outputs).toHaveLength(2);
+      expect(logic.rules).toHaveLength(1);
+    });
+
+    test('inline columns with allowedValues', async () => {
+      const { diagramId } = await createDiagram();
+      const res = parseResult(
+        await handleAddRule({
+          diagramId,
+          decisionId: 'Decision_1',
+          columns: [
+            {
+              columnType: 'input',
+              label: 'Status',
+              expressionText: 'status',
+              allowedValues: '"active","inactive"',
+            },
+            { columnType: 'output', label: 'Result', name: 'result' },
+          ],
+          inputEntries: ['"active"'],
+          outputEntries: ['"approved"'],
+        })
+      );
+      expect(res.success).toBe(true);
+      expect(res.createdColumns).toHaveLength(2);
+    });
   });
 });

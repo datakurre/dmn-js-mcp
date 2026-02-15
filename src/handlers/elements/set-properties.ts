@@ -2,8 +2,12 @@
  * Handler for set_dmn_element_properties tool.
  *
  * Updates properties on a DMN DRD element: standard attributes (name, id),
- * Camunda 7 extension properties (camunda:* prefix), and decision table
- * settings (hitPolicy, aggregation).
+ * Camunda 7 extension properties (camunda:* prefix), decision table
+ * settings (hitPolicy, aggregation), and element position (x, y).
+ *
+ * Position properties (x, y) are applied via `modeling.moveElements` —
+ * they specify absolute coordinates. At least one of x/y must be provided
+ * when repositioning.
  *
  * Camunda properties are validated against a whitelist per element type:
  *   - Decision: camunda:versionTag, camunda:historyTimeToLive
@@ -136,7 +140,7 @@ function applyHitPolicyProps(
   }
 }
 
-/** Partition properties into standard, camunda, and decision-table buckets. */
+/** Partition properties into standard, camunda, decision-table, and position buckets. */
 function partitionProperties(
   properties: Record<string, any>,
   elementType: string
@@ -145,17 +149,25 @@ function partitionProperties(
   camundaProps: Record<string, string>;
   hitPolicy: string | undefined;
   aggregation: string | undefined;
+  posX: number | undefined;
+  posY: number | undefined;
 } {
   const standardProps: Record<string, any> = {};
   const camundaProps: Record<string, string> = {};
   let hitPolicy: string | undefined;
   let aggregation: string | undefined;
+  let posX: number | undefined;
+  let posY: number | undefined;
 
   for (const [key, value] of Object.entries(properties)) {
     if (key === 'hitPolicy') {
       hitPolicy = value;
     } else if (key === 'aggregation') {
       aggregation = value;
+    } else if (key === 'x') {
+      posX = value;
+    } else if (key === 'y') {
+      posY = value;
     } else if (key.startsWith('camunda:')) {
       const bare = normalizeCamundaKey(key);
       validateCamundaProperty(bare, elementType);
@@ -165,7 +177,7 @@ function partitionProperties(
     }
   }
 
-  return { standardProps, camundaProps, hitPolicy, aggregation };
+  return { standardProps, camundaProps, hitPolicy, aggregation, posX, posY };
 }
 
 // ── Main handler ───────────────────────────────────────────────────────────
@@ -181,10 +193,21 @@ export async function handleSetProperties(args: SetPropertiesArgs): Promise<Tool
   const element = requireElement(elementRegistry, elementId);
   const bo = element.businessObject;
 
-  const { standardProps, camundaProps, hitPolicy, aggregation } = partitionProperties(
+  const { standardProps, camundaProps, hitPolicy, aggregation, posX, posY } = partitionProperties(
     properties,
     bo.$type
   );
+
+  // Apply position via modeling.moveElements (absolute coordinates)
+  if (posX !== undefined || posY !== undefined) {
+    const targetX = posX ?? element.x;
+    const targetY = posY ?? element.y;
+    const deltaX = targetX - element.x;
+    const deltaY = targetY - element.y;
+    if (Math.abs(deltaX) > 0.5 || Math.abs(deltaY) > 0.5) {
+      modeling.moveElements([element], { x: deltaX, y: deltaY });
+    }
+  }
 
   // Apply standard properties via modeling API
   if (Object.keys(standardProps).length > 0) {
@@ -214,8 +237,9 @@ export const TOOL_DEFINITION = {
   description:
     'Set properties on a DMN DRD element. Supports standard DMN attributes (name, id), ' +
     'Camunda extension properties (camunda:versionTag, camunda:historyTimeToLive, ' +
-    'camunda:diagramRelationId — prefix is required), and decision table ' +
-    'settings (hitPolicy, aggregation). Set a camunda property to empty string to remove it.',
+    'camunda:diagramRelationId — prefix is required), decision table ' +
+    'settings (hitPolicy, aggregation), and element position (x, y — absolute coordinates). ' +
+    'Set a camunda property to empty string to remove it.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -225,7 +249,8 @@ export const TOOL_DEFINITION = {
         type: 'object',
         description:
           'Key-value map of properties to set. Use camunda: prefix for Camunda properties ' +
-          '(e.g. "camunda:versionTag"). Use hitPolicy / aggregation for decision table settings.',
+          '(e.g. "camunda:versionTag"). Use hitPolicy / aggregation for decision table settings. ' +
+          'Use x / y for absolute element positioning.',
       },
     },
     required: ['diagramId', 'elementId', 'properties'],

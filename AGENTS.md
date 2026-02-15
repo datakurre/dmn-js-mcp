@@ -97,7 +97,7 @@ The DRD view uses `diagram-js` (same as bpmn-js), so headless polyfills are shar
 
 Planned tool names (see TODO.md for full list):
 
-- **DRD tools:** `create_dmn_diagram`, `add_dmn_drd_element`, `connect_dmn_elements`, `list_dmn_elements`, `delete_dmn_element`, `move_dmn_element`, `layout_dmn_diagram`
+- **DRD tools:** `create_dmn_diagram`, `add_dmn_element`, `connect_dmn_elements`, `list_dmn_elements`, `delete_dmn_element`, `layout_dmn_diagram`
 - **Decision Table tools:** `add_dmn_input_column`, `add_dmn_output_column`, `add_dmn_rule`, `update_dmn_rule_entry`, `set_dmn_hit_policy`
 - **Expression tools:** `set_dmn_literal_expression`, `parse_dmn_feel_expression`
 - **Lifecycle tools:** `export_dmn`, `import_dmn_xml`, `validate_dmn_diagram`, `list_dmn_diagrams`, `delete_dmn_diagram`
