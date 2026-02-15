@@ -1,5 +1,9 @@
 /**
- * Handler for list_dmn_diagrams tool.
+ * @internal List all in-memory diagrams.
+ *
+ * Not a registered MCP tool — the same data is served via the
+ * `dmn://diagrams` resource (see src/resources.ts). This handler
+ * is kept as an internal helper for backward compatibility.
  */
 
 import { type ToolResult } from '../../types';
@@ -35,12 +39,3 @@ export async function handleListDiagrams(): Promise<ToolResult> {
     count: list.length,
   });
 }
-
-export const TOOL_DEFINITION = {
-  name: 'list_dmn_diagrams',
-  description: 'List all DMN diagrams in memory with their IDs, names, and element counts.',
-  inputSchema: {
-    type: 'object',
-    properties: {},
-  },
-} as const;

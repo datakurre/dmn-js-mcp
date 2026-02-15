@@ -22,7 +22,7 @@ import { ERR_INTERNAL } from '../errors';
 import { handleCreateDiagram, TOOL_DEFINITION as CREATE_DIAGRAM_DEF } from './core/create-diagram';
 import { handleDeleteDiagram, TOOL_DEFINITION as DELETE_DIAGRAM_DEF } from './core/delete-diagram';
 import { handleListDiagrams } from './core/list-diagrams';
-import { handleImportXml, TOOL_DEFINITION as IMPORT_XML_DEF } from './core/import-xml';
+import { handleImportXml } from './core/import-xml';
 import { handleExportDmn, TOOL_DEFINITION as EXPORT_DMN_DEF } from './core/export';
 import { handleSummarizeDiagram, TOOL_DEFINITION as SUMMARIZE_DEF } from './core/summarize';
 import { handleDmnHistory, TOOL_DEFINITION as HISTORY_DEF } from './core/history';
@@ -40,8 +40,11 @@ import {
   handleDeleteElement,
   TOOL_DEFINITION as DELETE_ELEMENT_DEF,
 } from './elements/delete-element';
-import { handleListElements, TOOL_DEFINITION as LIST_ELEMENTS_DEF } from './elements/list-elements';
-import { handleGetProperties } from './elements/get-properties';
+import {
+  handleListElements,
+  handleGetProperties,
+  TOOL_DEFINITION as LIST_ELEMENTS_DEF,
+} from './elements/list-elements';
 import {
   handleSetProperties,
   TOOL_DEFINITION as SET_PROPERTIES_DEF,
@@ -56,7 +59,7 @@ import {
 import { handleAddColumn, TOOL_DEFINITION as ADD_COLUMN_DEF } from './decision-table/add-column';
 import { handleAddRule, TOOL_DEFINITION as ADD_RULE_DEF } from './decision-table/add-rule';
 import { handleEditCell, TOOL_DEFINITION as EDIT_CELL_DEF } from './decision-table/edit-cell';
-import { handleRemoveRule, TOOL_DEFINITION as REMOVE_RULE_DEF } from './decision-table/remove-rule';
+import { handleRemoveRule } from './decision-table/remove-rule';
 
 // ── Literal Expression ─────────────────────────────────────────────────────
 
@@ -82,7 +85,6 @@ interface ToolRegistration {
 const TOOL_REGISTRY: ToolRegistration[] = [
   // Core
   { definition: CREATE_DIAGRAM_DEF, handler: handleCreateDiagram },
-  { definition: IMPORT_XML_DEF, handler: handleImportXml },
   { definition: EXPORT_DMN_DEF, handler: handleExportDmn },
   { definition: DELETE_DIAGRAM_DEF, handler: handleDeleteDiagram },
   { definition: SUMMARIZE_DEF, handler: handleSummarizeDiagram },
@@ -101,7 +103,6 @@ const TOOL_REGISTRY: ToolRegistration[] = [
   { definition: ADD_COLUMN_DEF, handler: handleAddColumn },
   { definition: ADD_RULE_DEF, handler: handleAddRule },
   { definition: EDIT_CELL_DEF, handler: handleEditCell },
-  { definition: REMOVE_RULE_DEF, handler: handleRemoveRule },
   // Literal Expression
   { definition: SET_LITERAL_EXPRESSION_DEF, handler: handleSetLiteralExpression },
   // FEEL

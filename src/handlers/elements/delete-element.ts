@@ -1,7 +1,8 @@
 /**
  * Handler for delete_dmn_element tool.
  *
- * Supports single and bulk element deletion.
+ * Supports single and bulk DRD element deletion, and decision table
+ * rule removal (when decisionId + ruleIndex are provided).
  */
 
 import { type ToolResult } from '../../types';
@@ -13,15 +14,24 @@ import {
   syncXml,
   buildElementCounts,
 } from '../helpers';
+import { handleRemoveRule } from '../decision-table/remove-rule';
 
 export interface DeleteElementArgs {
   diagramId: string;
   elementId?: string;
   elementIds?: string[];
+  decisionId?: string;
+  ruleIndex?: number;
 }
 
 export async function handleDeleteElement(args: DeleteElementArgs): Promise<ToolResult> {
-  const { diagramId, elementId, elementIds } = args;
+  const { diagramId, elementId, elementIds, decisionId, ruleIndex } = args;
+
+  // Decision table rule deletion mode
+  if (decisionId !== undefined && ruleIndex !== undefined) {
+    return handleRemoveRule({ diagramId, decisionId, ruleIndex });
+  }
+
   const diagram = requireDiagram(diagramId);
 
   const viewer = diagram.modeler.getActiveViewer();
@@ -81,8 +91,9 @@ export async function handleDeleteElement(args: DeleteElementArgs): Promise<Tool
 export const TOOL_DEFINITION = {
   name: 'delete_dmn_element',
   description:
-    'Remove one or more elements from a DMN DRD. ' +
-    'Supports single deletion via elementId or bulk deletion via elementIds.',
+    'Remove one or more elements from a DMN DRD, or remove a rule from a decision table. ' +
+    'Supports single deletion via elementId, bulk deletion via elementIds, ' +
+    'or decision table rule removal via decisionId + ruleIndex.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -95,6 +106,16 @@ export const TOOL_DEFINITION = {
         type: 'array',
         items: { type: 'string' },
         description: 'Array of element IDs to remove (bulk mode). Overrides elementId.',
+      },
+      decisionId: {
+        type: 'string',
+        description:
+          'The Decision element ID (rule removal mode). Use with ruleIndex to remove a decision table rule.',
+      },
+      ruleIndex: {
+        type: 'number',
+        description:
+          'Zero-based index of the rule to remove (rule removal mode). Use with decisionId.',
       },
     },
     required: ['diagramId'],
