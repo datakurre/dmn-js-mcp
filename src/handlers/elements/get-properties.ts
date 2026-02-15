@@ -14,7 +14,7 @@ export interface GetPropertiesArgs {
 }
 
 /** Extract camunda:* attributes from a business object, if any. */
-function extractCamundaAttrs(bo: any): Record<string, any> | undefined {
+export function extractCamundaAttrs(bo: any): Record<string, any> | undefined {
   if (!bo?.$attrs) return undefined;
   const attrs: Record<string, any> = {};
   for (const [key, value] of Object.entries(bo.$attrs)) {
@@ -24,7 +24,7 @@ function extractCamundaAttrs(bo: any): Record<string, any> | undefined {
 }
 
 /** Serialize connection information. */
-function serializeConnections(element: any): { incoming?: any[]; outgoing?: any[] } {
+export function serializeConnections(element: any): { incoming?: any[]; outgoing?: any[] } {
   const result: { incoming?: any[]; outgoing?: any[] } = {};
   if (element.incoming?.length) {
     result.incoming = element.incoming.map((c: any) => ({
@@ -44,7 +44,7 @@ function serializeConnections(element: any): { incoming?: any[]; outgoing?: any[
 }
 
 /** Serialize decision logic summary. */
-function serializeDecisionLogic(bo: any): Record<string, any> | undefined {
+export function serializeDecisionLogic(bo: any): Record<string, any> | undefined {
   const logic = bo.decisionLogic;
   if (!logic) return undefined;
 

@@ -5,7 +5,7 @@ describe('tool-definitions', () => {
   const toolNames = TOOL_DEFINITIONS.map((t) => t.name);
 
   test('exports the expected number of tools', () => {
-    expect(TOOL_DEFINITIONS.length).toBe(22);
+    expect(TOOL_DEFINITIONS.length).toBe(20);
   });
 
   test.each([
@@ -13,7 +13,6 @@ describe('tool-definitions', () => {
     'import_dmn_xml',
     'export_dmn',
     'delete_dmn_diagram',
-    'list_dmn_diagrams',
     'summarize_dmn_diagram',
     'dmn_history',
     'batch_dmn_operations',
@@ -22,7 +21,6 @@ describe('tool-definitions', () => {
     'connect_dmn_elements',
     'delete_dmn_element',
     'list_dmn_elements',
-    'get_dmn_element_properties',
     'set_dmn_element_properties',
     'get_dmn_decision_logic',
     'add_dmn_column',

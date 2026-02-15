@@ -21,7 +21,7 @@ import { ERR_INTERNAL } from '../errors';
 
 import { handleCreateDiagram, TOOL_DEFINITION as CREATE_DIAGRAM_DEF } from './core/create-diagram';
 import { handleDeleteDiagram, TOOL_DEFINITION as DELETE_DIAGRAM_DEF } from './core/delete-diagram';
-import { handleListDiagrams, TOOL_DEFINITION as LIST_DIAGRAMS_DEF } from './core/list-diagrams';
+import { handleListDiagrams } from './core/list-diagrams';
 import { handleImportXml, TOOL_DEFINITION as IMPORT_XML_DEF } from './core/import-xml';
 import { handleExportDmn, TOOL_DEFINITION as EXPORT_DMN_DEF } from './core/export';
 import { handleSummarizeDiagram, TOOL_DEFINITION as SUMMARIZE_DEF } from './core/summarize';
@@ -41,10 +41,7 @@ import {
   TOOL_DEFINITION as DELETE_ELEMENT_DEF,
 } from './elements/delete-element';
 import { handleListElements, TOOL_DEFINITION as LIST_ELEMENTS_DEF } from './elements/list-elements';
-import {
-  handleGetProperties,
-  TOOL_DEFINITION as GET_PROPERTIES_DEF,
-} from './elements/get-properties';
+import { handleGetProperties } from './elements/get-properties';
 import {
   handleSetProperties,
   TOOL_DEFINITION as SET_PROPERTIES_DEF,
@@ -88,7 +85,6 @@ const TOOL_REGISTRY: ToolRegistration[] = [
   { definition: IMPORT_XML_DEF, handler: handleImportXml },
   { definition: EXPORT_DMN_DEF, handler: handleExportDmn },
   { definition: DELETE_DIAGRAM_DEF, handler: handleDeleteDiagram },
-  { definition: LIST_DIAGRAMS_DEF, handler: handleListDiagrams },
   { definition: SUMMARIZE_DEF, handler: handleSummarizeDiagram },
   { definition: HISTORY_DEF, handler: handleDmnHistory },
   { definition: BATCH_DEF, handler: handleBatchOperations },
@@ -99,7 +95,6 @@ const TOOL_REGISTRY: ToolRegistration[] = [
   { definition: CONNECT_DEF, handler: handleConnect },
   { definition: DELETE_ELEMENT_DEF, handler: handleDeleteElement },
   { definition: LIST_ELEMENTS_DEF, handler: handleListElements },
-  { definition: GET_PROPERTIES_DEF, handler: handleGetProperties },
   { definition: SET_PROPERTIES_DEF, handler: handleSetProperties },
   // Decision Table
   { definition: GET_DECISION_LOGIC_DEF, handler: handleGetDecisionLogic },

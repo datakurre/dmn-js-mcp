@@ -95,12 +95,14 @@ The DRD view uses `diagram-js` (same as bpmn-js), so headless polyfills are shar
 
 **Every tool name includes `dmn`** to avoid collisions with other MCPs (e.g. bpmn-js-mcp).
 
-Planned tool names (see TODO.md for full list):
+Registered tools (20):
 
-- **DRD tools:** `create_dmn_diagram`, `add_dmn_element`, `connect_dmn_elements`, `list_dmn_elements`, `delete_dmn_element`, `layout_dmn_diagram`
-- **Decision Table tools:** `add_dmn_input_column`, `add_dmn_output_column`, `add_dmn_rule`, `update_dmn_rule_entry`, `set_dmn_hit_policy`
-- **Expression tools:** `set_dmn_literal_expression`, `parse_dmn_feel_expression`
-- **Lifecycle tools:** `export_dmn`, `import_dmn_xml`, `validate_dmn_diagram`, `list_dmn_diagrams`, `delete_dmn_diagram`
+- **Core:** `create_dmn_diagram`, `import_dmn_xml`, `export_dmn`, `delete_dmn_diagram`, `summarize_dmn_diagram`, `dmn_history`, `batch_dmn_operations`
+- **Layout:** `layout_dmn_diagram`
+- **DRD Elements:** `add_dmn_element`, `connect_dmn_elements`, `delete_dmn_element`, `list_dmn_elements`, `set_dmn_element_properties`
+- **Decision Table:** `get_dmn_decision_logic`, `add_dmn_column`, `add_dmn_rule`, `edit_dmn_cell`, `remove_dmn_rule`
+- **Literal Expression:** `set_dmn_literal_expression`
+- **FEEL:** `validate_dmn_feel_expression`
 
 ## Build & Run
 
