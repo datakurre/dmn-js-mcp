@@ -56,21 +56,21 @@ const PROMPTS: PromptDefinition[] = [
               `Create a DMN decision table called "${name}".${desc}\n\n` +
               `Follow these steps:\n\n` +
               `1. **Create diagram**: Use \`create_dmn_diagram\` with name "${name}"\n` +
-              `2. **Set hit policy**: Use \`set_dmn_hit_policy\` — choose the appropriate policy:\n` +
+              `2. **Set hit policy**: Use \`set_dmn_element_properties\` with \`{ hitPolicy: "..." }\` — choose the appropriate policy:\n` +
               `   - UNIQUE (default): exactly one rule matches\n` +
               `   - FIRST: first matching rule wins (order matters)\n` +
               `   - PRIORITY: highest priority output wins\n` +
               `   - ANY: all matching rules must agree\n` +
               `   - COLLECT: collect all matching outputs (with optional aggregation: SUM, MIN, MAX, COUNT)\n` +
               `   - RULE ORDER: return all matches in rule order\n` +
-              `3. **Add input columns**: Use \`add_dmn_input\` for each input variable.\n` +
-              `   Set the expression (FEEL), label, and typeRef (string, integer, double, boolean, date).\n` +
-              `4. **Add output columns**: Use \`add_dmn_output\` for each output variable.\n` +
+              `3. **Add input columns**: Use \`add_dmn_column\` with columnType="input" for each input variable.\n` +
+              `   Set the expressionText (FEEL), label, and typeRef (string, integer, double, boolean, date).\n` +
+              `4. **Add output columns**: Use \`add_dmn_column\` with columnType="output" for each output variable.\n` +
               `   Set the name, label, and typeRef.\n` +
               `5. **Add rules**: Use \`add_dmn_rule\` to add decision rules.\n` +
               `   Each rule has input entries (FEEL unary tests) and output entries.\n` +
               `   Common input patterns: \`"Premium"\`, \`>= 1000\`, \`[100..500]\`, \`not("Basic")\`\n` +
-              `6. **Validate**: Use \`validate_dmn_diagram\` to check for issues\n` +
+              `6. **Validate**: Use \`summarize_dmn_diagram\` to check structure and issues\n` +
               `7. **Export**: Use \`export_dmn\` to get the final DMN XML`,
           },
         },
@@ -120,11 +120,10 @@ const PROMPTS: PromptDefinition[] = [
               `   - Knowledge Requirements: BKM → Decision\n` +
               `   - Authority Requirements: KnowledgeSource → Decision\n` +
               `5. **Add decision logic**: For each decision, either:\n` +
-              `   - Build a decision table (add_dmn_input, add_dmn_output, add_dmn_rule)\n` +
+              `   - Build a decision table (add_dmn_column, add_dmn_rule)\n` +
               `   - Set a literal expression (set_dmn_literal_expression)\n` +
-              `6. **Validate**: Use \`validate_dmn_diagram\` to check for issues\n` +
-              `7. **Review**: Use \`summarize_dmn_diagram\` to verify the structure\n` +
-              `8. **Export**: Use \`export_dmn\` to get the final DMN XML\n\n` +
+              `6. **Review & validate**: Use \`summarize_dmn_diagram\` to verify structure and check for issues\n` +
+              `7. **Export**: Use \`export_dmn\` to get the final DMN XML\n\n` +
               `**Best practices:**\n` +
               `- Every Decision should have at least one incoming requirement\n` +
               `- InputData elements are leaf nodes (no incoming, only outgoing)\n` +
@@ -165,7 +164,7 @@ const PROMPTS: PromptDefinition[] = [
               `   - \`camunda:versionTag\`: version identifier for deployment management\n` +
               `4. **Configure inputs**: Ensure all input expressions match the variable names\n` +
               `   that will be provided by the calling BPMN process or API.\n` +
-              `5. **Validate**: Use \`validate_dmn_diagram\` to check for issues\n\n` +
+              `5. **Validate**: Use \`summarize_dmn_diagram\` to check for issues\n\n` +
               `**Camunda 7 integration notes:**\n` +
               `- Business Rule Tasks in BPMN reference decisions by \`decisionRef\` (the decision ID)\n` +
               `- \`mapDecisionResult\` controls how results map to process variables:\n` +

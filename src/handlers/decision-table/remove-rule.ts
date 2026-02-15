@@ -5,8 +5,9 @@
  */
 
 import { type ToolResult } from '../../types';
-import { typeMismatchError, invalidEnumError } from '../../errors';
+import { invalidEnumError } from '../../errors';
 import { requireDiagram, requireElement, jsonResult, syncXml, validateArgs } from '../helpers';
+import { requireDecisionTable } from './helpers';
 
 export interface RemoveRuleArgs {
   diagramId: string;
@@ -28,14 +29,7 @@ export async function handleRemoveRule(args: RemoveRuleArgs): Promise<ToolResult
   const element = requireElement(elementRegistry, decisionId);
 
   const bo = element.businessObject;
-  if (bo.$type !== 'dmn:Decision') {
-    throw typeMismatchError(decisionId, bo.$type, ['dmn:Decision']);
-  }
-
-  const logic = bo.decisionLogic;
-  if (!logic || logic.$type !== 'dmn:DecisionTable') {
-    throw typeMismatchError(decisionId, logic?.$type || 'none', ['dmn:DecisionTable']);
-  }
+  const logic = requireDecisionTable(bo, decisionId);
 
   const rules = logic.rule || [];
   if (ruleIndex < 0 || ruleIndex >= rules.length) {

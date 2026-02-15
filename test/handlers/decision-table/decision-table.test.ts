@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from 'vitest';
-import { handleGetDecisionTable, handleSetHitPolicy, handleAddRule } from '../../../src/handlers';
+import { handleGetDecisionLogic, handleSetProperties, handleAddRule } from '../../../src/handlers';
 import { parseResult, createDiagram, clearDiagrams } from '../../helpers';
 
 describe('decision table tools', () => {
@@ -7,14 +7,15 @@ describe('decision table tools', () => {
     clearDiagrams();
   });
 
-  describe('get_dmn_decision_table', () => {
+  describe('get_dmn_decision_logic (decision table)', () => {
     test('returns the decision table for Decision_1', async () => {
       const { diagramId } = await createDiagram();
       const res = parseResult(
-        await handleGetDecisionTable({ diagramId, decisionId: 'Decision_1' })
+        await handleGetDecisionLogic({ diagramId, decisionId: 'Decision_1' })
       );
       expect(res.success).toBe(true);
       expect(res.decisionId).toBe('Decision_1');
+      expect(res.decisionLogicType).toBe('dmn:DecisionTable');
       expect(res.inputs).toBeDefined();
       expect(res.outputs).toBeDefined();
       expect(res.rules).toBeDefined();
@@ -23,32 +24,37 @@ describe('decision table tools', () => {
     test('throws for unknown decision', async () => {
       const { diagramId } = await createDiagram();
       await expect(
-        handleGetDecisionTable({ diagramId, decisionId: 'nonexistent' })
+        handleGetDecisionLogic({ diagramId, decisionId: 'nonexistent' })
       ).rejects.toThrow();
     });
   });
 
-  describe('set_dmn_hit_policy', () => {
+  describe('set_dmn_element_properties (hit policy)', () => {
     test('sets hit policy to COLLECT', async () => {
       const { diagramId } = await createDiagram();
       const res = parseResult(
-        await handleSetHitPolicy({
+        await handleSetProperties({
           diagramId,
-          decisionId: 'Decision_1',
-          hitPolicy: 'COLLECT',
+          elementId: 'Decision_1',
+          properties: { hitPolicy: 'COLLECT' },
         })
       );
       expect(res.success).toBe(true);
-      expect(res.hitPolicy).toBe('COLLECT');
+
+      // Verify by reading back
+      const logic = parseResult(
+        await handleGetDecisionLogic({ diagramId, decisionId: 'Decision_1' })
+      );
+      expect(logic.hitPolicy).toBe('COLLECT');
     });
 
     test('throws for invalid hit policy', async () => {
       const { diagramId } = await createDiagram();
       await expect(
-        handleSetHitPolicy({
+        handleSetProperties({
           diagramId,
-          decisionId: 'Decision_1',
-          hitPolicy: 'BOGUS' as any,
+          elementId: 'Decision_1',
+          properties: { hitPolicy: 'BOGUS' },
         })
       ).rejects.toThrow();
     });

@@ -126,8 +126,8 @@ export async function handleAddElement(args: AddElementArgs): Promise<ToolResult
       ...(elementType === 'dmn:Decision'
         ? [
             {
-              tool: 'get_dmn_decision_table',
-              description: 'Configure the decision table for this decision.',
+              tool: 'get_dmn_decision_logic',
+              description: 'Inspect the decision logic for this decision.',
             },
           ]
         : []),

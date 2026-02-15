@@ -24,15 +24,9 @@ import { handleDeleteDiagram, TOOL_DEFINITION as DELETE_DIAGRAM_DEF } from './co
 import { handleListDiagrams, TOOL_DEFINITION as LIST_DIAGRAMS_DEF } from './core/list-diagrams';
 import { handleImportXml, TOOL_DEFINITION as IMPORT_XML_DEF } from './core/import-xml';
 import { handleExportDmn, TOOL_DEFINITION as EXPORT_DMN_DEF } from './core/export';
-import { handleValidate, TOOL_DEFINITION as VALIDATE_DEF } from './core/validate';
 import { handleSummarizeDiagram, TOOL_DEFINITION as SUMMARIZE_DEF } from './core/summarize';
 import { handleDmnHistory, TOOL_DEFINITION as HISTORY_DEF } from './core/history';
 import { handleBatchOperations, TOOL_DEFINITION as BATCH_DEF } from './core/batch';
-import { handleListVariables, TOOL_DEFINITION as LIST_VARIABLES_DEF } from './core/list-variables';
-import {
-  handleSetCamundaProperties,
-  TOOL_DEFINITION as CAMUNDA_PROPERTIES_DEF,
-} from './core/camunda-properties';
 
 // ── Layout ─────────────────────────────────────────────────────────────────
 
@@ -60,22 +54,13 @@ import {
 // ── Decision Table ─────────────────────────────────────────────────────────
 
 import {
-  handleGetDecisionTable,
-  TOOL_DEFINITION as GET_DECISION_TABLE_DEF,
-} from './decision-table/get-decision-table';
-import {
-  handleSetHitPolicy,
-  TOOL_DEFINITION as SET_HIT_POLICY_DEF,
-} from './decision-table/set-hit-policy';
-import { handleAddInput, TOOL_DEFINITION as ADD_INPUT_DEF } from './decision-table/add-input';
-import { handleAddOutput, TOOL_DEFINITION as ADD_OUTPUT_DEF } from './decision-table/add-output';
+  handleGetDecisionLogic,
+  TOOL_DEFINITION as GET_DECISION_LOGIC_DEF,
+} from './decision-table/get-decision-logic';
+import { handleAddColumn, TOOL_DEFINITION as ADD_COLUMN_DEF } from './decision-table/add-column';
 import { handleAddRule, TOOL_DEFINITION as ADD_RULE_DEF } from './decision-table/add-rule';
 import { handleEditCell, TOOL_DEFINITION as EDIT_CELL_DEF } from './decision-table/edit-cell';
 import { handleRemoveRule, TOOL_DEFINITION as REMOVE_RULE_DEF } from './decision-table/remove-rule';
-import {
-  handleAnalyzeDecisionTable,
-  TOOL_DEFINITION as ANALYZE_DECISION_TABLE_DEF,
-} from './decision-table/analyze';
 
 // ── Literal Expression ─────────────────────────────────────────────────────
 
@@ -83,10 +68,6 @@ import {
   handleSetLiteralExpression,
   TOOL_DEFINITION as SET_LITERAL_EXPRESSION_DEF,
 } from './literal-expression/set-literal-expression';
-import {
-  handleGetLiteralExpression,
-  TOOL_DEFINITION as GET_LITERAL_EXPRESSION_DEF,
-} from './literal-expression/get-literal-expression';
 
 // ── FEEL ───────────────────────────────────────────────────────────────────
 
@@ -109,12 +90,9 @@ const TOOL_REGISTRY: ToolRegistration[] = [
   { definition: EXPORT_DMN_DEF, handler: handleExportDmn },
   { definition: DELETE_DIAGRAM_DEF, handler: handleDeleteDiagram },
   { definition: LIST_DIAGRAMS_DEF, handler: handleListDiagrams },
-  { definition: VALIDATE_DEF, handler: handleValidate },
   { definition: SUMMARIZE_DEF, handler: handleSummarizeDiagram },
   { definition: HISTORY_DEF, handler: handleDmnHistory },
   { definition: BATCH_DEF, handler: handleBatchOperations },
-  { definition: LIST_VARIABLES_DEF, handler: handleListVariables },
-  { definition: CAMUNDA_PROPERTIES_DEF, handler: handleSetCamundaProperties },
   // Layout
   { definition: LAYOUT_DEF, handler: handleLayoutDiagram },
   // DRD Elements
@@ -126,17 +104,13 @@ const TOOL_REGISTRY: ToolRegistration[] = [
   { definition: GET_PROPERTIES_DEF, handler: handleGetProperties },
   { definition: SET_PROPERTIES_DEF, handler: handleSetProperties },
   // Decision Table
-  { definition: GET_DECISION_TABLE_DEF, handler: handleGetDecisionTable },
-  { definition: SET_HIT_POLICY_DEF, handler: handleSetHitPolicy },
-  { definition: ADD_INPUT_DEF, handler: handleAddInput },
-  { definition: ADD_OUTPUT_DEF, handler: handleAddOutput },
+  { definition: GET_DECISION_LOGIC_DEF, handler: handleGetDecisionLogic },
+  { definition: ADD_COLUMN_DEF, handler: handleAddColumn },
   { definition: ADD_RULE_DEF, handler: handleAddRule },
   { definition: EDIT_CELL_DEF, handler: handleEditCell },
   { definition: REMOVE_RULE_DEF, handler: handleRemoveRule },
-  { definition: ANALYZE_DECISION_TABLE_DEF, handler: handleAnalyzeDecisionTable },
   // Literal Expression
   { definition: SET_LITERAL_EXPRESSION_DEF, handler: handleSetLiteralExpression },
-  { definition: GET_LITERAL_EXPRESSION_DEF, handler: handleGetLiteralExpression },
   // FEEL
   { definition: VALIDATE_FEEL_DEF, handler: handleValidateFeelExpression },
 ];
@@ -174,17 +148,13 @@ export async function dispatchToolCall(name: string, args: any): Promise<ToolRes
 export {
   handleCreateDiagram,
   handleLayoutDiagram,
-  handleSetCamundaProperties,
-  handleAnalyzeDecisionTable,
   handleDeleteDiagram,
   handleListDiagrams,
   handleImportXml,
   handleExportDmn,
-  handleValidate,
   handleSummarizeDiagram,
   handleDmnHistory,
   handleBatchOperations,
-  handleListVariables,
   handleAddElement,
   handleConnect,
   handleDeleteElement,
@@ -192,14 +162,11 @@ export {
   handleListElements,
   handleGetProperties,
   handleSetProperties,
-  handleGetDecisionTable,
-  handleSetHitPolicy,
-  handleAddInput,
-  handleAddOutput,
+  handleGetDecisionLogic,
+  handleAddColumn,
   handleAddRule,
   handleEditCell,
   handleRemoveRule,
   handleSetLiteralExpression,
-  handleGetLiteralExpression,
   handleValidateFeelExpression,
 };

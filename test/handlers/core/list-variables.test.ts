@@ -1,19 +1,18 @@
 import { describe, test, expect, beforeEach } from 'vitest';
-import { handleListVariables } from '../../../src/handlers/core/list-variables';
+import { handleSummarizeDiagram } from '../../../src/handlers/core/summarize';
 import { handleCreateDiagram } from '../../../src/handlers/core/create-diagram';
 import { handleAddElement } from '../../../src/handlers/elements/add-element';
-import { handleAddInput } from '../../../src/handlers/decision-table/add-input';
-import { handleAddOutput } from '../../../src/handlers/decision-table/add-output';
+import { handleAddColumn } from '../../../src/handlers/decision-table/add-column';
 import { parseResult, clearDiagrams } from '../../helpers';
 
-describe('list_dmn_variables', () => {
+describe('summarize_dmn_diagram (variables)', () => {
   beforeEach(() => {
     clearDiagrams();
   });
 
   test('lists variables from a new diagram', async () => {
     const { diagramId } = parseResult(await handleCreateDiagram({ name: 'Test' }));
-    const res = parseResult(await handleListVariables({ diagramId }));
+    const res = parseResult(await handleSummarizeDiagram({ diagramId, includeVariables: true }));
 
     expect(res.success).toBe(true);
     expect(res.totalVariables).toBeGreaterThanOrEqual(0);
@@ -31,7 +30,7 @@ describe('list_dmn_variables', () => {
       y: 250,
     });
 
-    const res = parseResult(await handleListVariables({ diagramId }));
+    const res = parseResult(await handleSummarizeDiagram({ diagramId, includeVariables: true }));
 
     expect(res.success).toBe(true);
     const inputVar = res.variables.find(
@@ -45,24 +44,26 @@ describe('list_dmn_variables', () => {
     const { diagramId } = parseResult(await handleCreateDiagram({}));
 
     // Add a named input column
-    await handleAddInput({
+    await handleAddColumn({
       diagramId,
       decisionId: 'Decision_1',
+      columnType: 'input',
       label: 'Age',
       expressionText: 'age',
       typeRef: 'integer',
     });
 
     // Add a named output column
-    await handleAddOutput({
+    await handleAddColumn({
       diagramId,
       decisionId: 'Decision_1',
+      columnType: 'output',
       name: 'discount',
       label: 'Discount',
       typeRef: 'double',
     });
 
-    const res = parseResult(await handleListVariables({ diagramId }));
+    const res = parseResult(await handleSummarizeDiagram({ diagramId, includeVariables: true }));
 
     expect(res.success).toBe(true);
     // Should have at least the Age input and discount output from the table
@@ -80,6 +81,8 @@ describe('list_dmn_variables', () => {
   });
 
   test('throws for unknown diagram', async () => {
-    await expect(handleListVariables({ diagramId: 'nonexistent' })).rejects.toThrow(/not found/i);
+    await expect(
+      handleSummarizeDiagram({ diagramId: 'nonexistent', includeVariables: true })
+    ).rejects.toThrow(/not found/i);
   });
 });

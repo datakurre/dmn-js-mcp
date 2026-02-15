@@ -1,23 +1,72 @@
 /**
- * Handler for analyze_dmn_decision_table tool.
+ * Handler for get_dmn_decision_logic tool.
  *
- * Performs completeness analysis on a DMN decision table:
- * - Checks for missing input/output column definitions
- * - Identifies empty rules (rows with no entries)
- * - Checks for missing rule entries (dash/wildcard vs empty)
- * - Validates that hit policy is set
- * - Reports coverage of input value ranges when inputValues are defined
- * - Flags potential issues like overlapping rules for UNIQUE hit policy
+ * Returns the decision logic for a Decision element — whichever type is
+ * present: DecisionTable structure, LiteralExpression text, or nothing.
+ * Callers no longer need to guess the logic type before querying.
+ *
+ * Optionally runs completeness analysis when `analyze: true` is set.
  */
 
 import { type ToolResult } from '../../types';
 import { typeMismatchError } from '../../errors';
 import { requireDiagram, requireElement, jsonResult, validateArgs } from '../helpers';
 
-export interface AnalyzeDecisionTableArgs {
+export interface GetDecisionLogicArgs {
   diagramId: string;
   decisionId: string;
+  analyze?: boolean;
 }
+
+// ── Serialization helpers ──────────────────────────────────────────────────
+
+/** Serialize an input column. */
+function serializeInput(input: any, index: number): Record<string, any> {
+  return {
+    id: input.id,
+    index,
+    label: input.label || undefined,
+    inputExpression: input.inputExpression
+      ? {
+          id: input.inputExpression.id,
+          typeRef: input.inputExpression.typeRef || undefined,
+          text: input.inputExpression.text || '',
+        }
+      : undefined,
+    inputValues: input.inputValues?.text || undefined,
+  };
+}
+
+/** Serialize an output column. */
+function serializeOutput(output: any, index: number): Record<string, any> {
+  return {
+    id: output.id,
+    index,
+    label: output.label || undefined,
+    name: output.name || undefined,
+    typeRef: output.typeRef || undefined,
+    outputValues: output.outputValues?.text || undefined,
+  };
+}
+
+/** Serialize a rule (row). */
+function serializeRule(rule: any, index: number): Record<string, any> {
+  return {
+    id: rule.id,
+    index,
+    description: rule.description || undefined,
+    inputEntries: (rule.inputEntry || []).map((entry: any) => ({
+      id: entry.id,
+      text: entry.text || '',
+    })),
+    outputEntries: (rule.outputEntry || []).map((entry: any) => ({
+      id: entry.id,
+      text: entry.text || '',
+    })),
+  };
+}
+
+// ── Analysis helpers (from the former analyze handler) ─────────────────────
 
 interface ColumnIssue {
   columnId: string;
@@ -43,7 +92,6 @@ interface CoverageInfo {
   coveragePercent: number;
 }
 
-/** Check input columns for missing definitions. */
 function checkInputColumns(inputs: any[]): ColumnIssue[] {
   const issues: ColumnIssue[] = [];
   for (let i = 0; i < inputs.length; i++) {
@@ -68,7 +116,6 @@ function checkInputColumns(inputs: any[]): ColumnIssue[] {
   return issues;
 }
 
-/** Check output columns for missing definitions. */
 function checkOutputColumns(outputs: any[]): ColumnIssue[] {
   const issues: ColumnIssue[] = [];
   for (let i = 0; i < outputs.length; i++) {
@@ -93,19 +140,15 @@ function checkOutputColumns(outputs: any[]): ColumnIssue[] {
   return issues;
 }
 
-/** Check rules for empty outputs and catch-all patterns. */
 function checkRules(rules: any[], inputCount: number): RuleIssue[] {
   const issues: RuleIssue[] = [];
   if (rules.length === 0) {
     issues.push({ ruleId: '', ruleIndex: -1, issue: 'Decision table has no rules defined.' });
     return issues;
   }
-
   for (let i = 0; i < rules.length; i++) {
     const rule = rules[i];
     const outputEntries: any[] = rule.outputEntry || [];
-
-    // Check for empty output entries
     for (let j = 0; j < outputEntries.length; j++) {
       const entry = outputEntries[j];
       if (!entry.text || entry.text.trim() === '') {
@@ -117,8 +160,6 @@ function checkRules(rules: any[], inputCount: number): RuleIssue[] {
         });
       }
     }
-
-    // Check if ALL input entries are empty/wildcard (catch-all rule)
     const inputEntries: any[] = rule.inputEntry || [];
     const allInputsEmpty =
       inputEntries.length > 0 &&
@@ -136,7 +177,6 @@ function checkRules(rules: any[], inputCount: number): RuleIssue[] {
   return issues;
 }
 
-/** Parse comma-separated FEEL values (e.g. "val1","val2"). */
 function parseValues(text: string): string[] {
   return text
     .split(',')
@@ -144,18 +184,14 @@ function parseValues(text: string): string[] {
     .filter((v) => v.length > 0);
 }
 
-/** Analyse input value coverage when inputValues constraints are defined. */
 function checkValueCoverage(inputs: any[], rules: any[]): CoverageInfo[] {
   const coverageInfos: CoverageInfo[] = [];
-
   for (let i = 0; i < inputs.length; i++) {
     const input = inputs[i];
     const definedText = input.inputValues?.text;
     if (!definedText) continue;
-
     const definedValues = parseValues(definedText);
     if (definedValues.length === 0) continue;
-
     const usedValues = new Set<string>();
     for (const rule of rules) {
       const entries: any[] = rule.inputEntry || [];
@@ -164,11 +200,9 @@ function checkValueCoverage(inputs: any[], rules: any[]): CoverageInfo[] {
         for (const v of parseValues(text)) usedValues.add(v);
       }
     }
-
     const missingValues = definedValues.filter((v) => !usedValues.has(v));
     const covered = definedValues.length - missingValues.length;
     const coveragePercent = Math.round((covered / definedValues.length) * 100);
-
     coverageInfos.push({
       columnId: input.id,
       columnIndex: i,
@@ -179,15 +213,12 @@ function checkValueCoverage(inputs: any[], rules: any[]): CoverageInfo[] {
       coveragePercent,
     });
   }
-
   return coverageInfos;
 }
 
-/** Detect potentially overlapping rules for UNIQUE hit policy. */
 function checkUniqueOverlaps(rules: any[], inputCount: number): string[] {
   const warnings: string[] = [];
   if (rules.length < 2) return warnings;
-
   for (let a = 0; a < rules.length; a++) {
     for (let b = a + 1; b < rules.length; b++) {
       if (rulesOverlap(rules[a], rules[b], inputCount)) {
@@ -201,15 +232,12 @@ function checkUniqueOverlaps(rules: any[], inputCount: number): string[] {
   return warnings;
 }
 
-/** Check if two rules may overlap on all input columns. */
 function rulesOverlap(ruleA: any, ruleB: any, inputCount: number): boolean {
   const entriesA: any[] = ruleA.inputEntry || [];
   const entriesB: any[] = ruleB.inputEntry || [];
-
   for (let i = 0; i < inputCount; i++) {
     const textA = (entriesA[i]?.text || '').trim();
     const textB = (entriesB[i]?.text || '').trim();
-    // Both empty/wildcard or same value = possible overlap
     if (textA === '' || textA === '-' || textB === '' || textB === '-') continue;
     if (textA === textB) continue;
     return false;
@@ -217,38 +245,8 @@ function rulesOverlap(ruleA: any, ruleB: any, inputCount: number): boolean {
   return true;
 }
 
-export async function handleAnalyzeDecisionTable(
-  args: AnalyzeDecisionTableArgs
-): Promise<ToolResult> {
-  validateArgs(args, ['diagramId', 'decisionId']);
-  const { diagramId, decisionId } = args;
-  const diagram = requireDiagram(diagramId);
-
-  const viewer = diagram.modeler.getActiveViewer();
-  const elementRegistry = viewer.get('elementRegistry');
-  const element = requireElement(elementRegistry, decisionId);
-
-  const bo = element.businessObject;
-  if (bo.$type !== 'dmn:Decision') {
-    throw typeMismatchError(decisionId, bo.$type, ['dmn:Decision']);
-  }
-
-  const logic = bo.decisionLogic;
-  if (!logic || logic.$type !== 'dmn:DecisionTable') {
-    return jsonResult({
-      success: true,
-      decisionId,
-      hasDecisionTable: false,
-      decisionLogicType: logic?.$type || 'none',
-      message: `Decision ${decisionId} does not have a DecisionTable.`,
-    });
-  }
-
-  return buildAnalysis(decisionId, logic);
-}
-
-/** Build the completeness analysis result for a decision table. */
-function buildAnalysis(decisionId: string, logic: any): ToolResult {
+/** Build the completeness analysis for a decision table. */
+function buildAnalysis(logic: any): Record<string, any> {
   const inputs: any[] = logic.input || [];
   const outputs: any[] = logic.output || [];
   const rules: any[] = logic.rule || [];
@@ -263,46 +261,119 @@ function buildAnalysis(decisionId: string, logic: any): ToolResult {
   const incompleteCoverage = coverageInfos.filter((c) => c.coveragePercent < 100);
   const isComplete = totalIssues === 0 && incompleteCoverage.length === 0;
 
-  const message = isComplete
-    ? `Decision table for ${decisionId} is complete: ${inputs.length} input(s), ${outputs.length} output(s), ${rules.length} rule(s).`
-    : `Decision table for ${decisionId} has ${totalIssues} issue(s)` +
-      (incompleteCoverage.length > 0
-        ? ` and ${incompleteCoverage.length} column(s) with incomplete value coverage`
-        : '') +
-      '.';
-
-  return jsonResult({
-    success: true,
-    decisionId,
-    hitPolicy,
-    inputCount: inputs.length,
-    outputCount: outputs.length,
-    ruleCount: rules.length,
+  return {
     isComplete,
     totalIssues,
     ...(columnIssues.length > 0 ? { columnIssues } : {}),
     ...(ruleIssues.length > 0 ? { ruleIssues } : {}),
     ...(hitPolicyWarnings.length > 0 ? { hitPolicyWarnings } : {}),
     ...(coverageInfos.length > 0 ? { valueCoverage: coverageInfos } : {}),
-    message,
+  };
+}
+
+// ── Main handler ───────────────────────────────────────────────────────────
+
+export async function handleGetDecisionLogic(args: GetDecisionLogicArgs): Promise<ToolResult> {
+  validateArgs(args, ['diagramId', 'decisionId']);
+  const { diagramId, decisionId, analyze } = args;
+  const diagram = requireDiagram(diagramId);
+
+  const viewer = diagram.modeler.getActiveViewer();
+  const elementRegistry = viewer.get('elementRegistry');
+  const element = requireElement(elementRegistry, decisionId);
+
+  const bo = element.businessObject;
+  if (bo.$type !== 'dmn:Decision') {
+    throw typeMismatchError(decisionId, bo.$type, ['dmn:Decision']);
+  }
+
+  const logic = bo.decisionLogic;
+
+  // No decision logic at all
+  if (!logic) {
+    return jsonResult({
+      success: true,
+      decisionId,
+      hasDecisionLogic: false,
+      decisionLogicType: 'none',
+      message: `Decision ${decisionId} has no decision logic set.`,
+    });
+  }
+
+  // DecisionTable
+  if (logic.$type === 'dmn:DecisionTable') {
+    const inputs = (logic.input || []).map(serializeInput);
+    const outputs = (logic.output || []).map(serializeOutput);
+    const rules = (logic.rule || []).map(serializeRule);
+
+    const result: Record<string, any> = {
+      success: true,
+      decisionId,
+      hasDecisionLogic: true,
+      decisionLogicType: 'dmn:DecisionTable',
+      hasDecisionTable: true,
+      hitPolicy: logic.hitPolicy || 'UNIQUE',
+      aggregation: logic.aggregation || undefined,
+      inputs,
+      outputs,
+      rules,
+      message: `Decision table for ${decisionId}: ${inputs.length} input(s), ${outputs.length} output(s), ${rules.length} rule(s)`,
+    };
+
+    // Optional analysis
+    if (analyze) {
+      result.analysis = buildAnalysis(logic);
+    }
+
+    return jsonResult(result);
+  }
+
+  // LiteralExpression
+  if (logic.$type === 'dmn:LiteralExpression') {
+    return jsonResult({
+      success: true,
+      decisionId,
+      hasDecisionLogic: true,
+      decisionLogicType: 'dmn:LiteralExpression',
+      hasLiteralExpression: true,
+      text: logic.text || '',
+      expressionLanguage: logic.expressionLanguage || 'feel',
+      typeRef: logic.typeRef || undefined,
+      message: `Literal expression on ${decisionId}: "${logic.text || ''}"`,
+    });
+  }
+
+  // Other / unknown logic type
+  return jsonResult({
+    success: true,
+    decisionId,
+    hasDecisionLogic: true,
+    decisionLogicType: logic.$type,
+    message: `Decision ${decisionId} uses ${logic.$type}.`,
   });
 }
 
 export const TOOL_DEFINITION = {
-  name: 'analyze_dmn_decision_table',
+  name: 'get_dmn_decision_logic',
   description:
-    'Analyze a DMN decision table for completeness. Checks for: ' +
-    'missing column definitions (expression, typeRef), empty rules and output cells, ' +
-    'catch-all rules, input value coverage (when inputValues constraints are defined), ' +
-    'and potential rule overlaps for UNIQUE hit policy. ' +
-    'Returns isComplete: true when no issues are found.',
+    'Get the decision logic of a Decision element. Returns the full structure ' +
+    'for whichever logic type is present: DecisionTable (hit policy, inputs, outputs, rules), ' +
+    'LiteralExpression (FEEL text, type), or indicates no logic is set. ' +
+    'Use analyze=true to include completeness analysis for decision tables ' +
+    '(missing definitions, empty cells, value coverage, rule overlaps).',
   inputSchema: {
     type: 'object',
     properties: {
       diagramId: { type: 'string', description: 'The diagram ID' },
       decisionId: {
         type: 'string',
-        description: 'The ID of the Decision element containing the table to analyze',
+        description: 'The ID of the Decision element',
+      },
+      analyze: {
+        type: 'boolean',
+        description:
+          'When true, include completeness analysis for decision tables ' +
+          '(column issues, rule issues, value coverage, overlap warnings). Default: false.',
       },
     },
     required: ['diagramId', 'decisionId'],

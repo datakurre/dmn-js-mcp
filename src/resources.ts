@@ -12,10 +12,9 @@
 
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { getAllDiagrams, getDiagram } from './diagram-manager';
-import { handleSummarizeDiagram } from './handlers/core/summarize';
-import { handleValidate } from './handlers/core/validate';
-import { handleListVariables } from './handlers/core/list-variables';
+import { handleSummarizeDiagram, buildValidation, buildVariables } from './handlers/core/summarize';
 import { handleListDiagrams } from './handlers/core/list-diagrams';
+import { getVisibleElements } from './handlers/diagram-access';
 
 /** Resource template definitions for dmn:// URIs. */
 export const RESOURCE_TEMPLATES = [
@@ -138,9 +137,27 @@ export async function readResource(
   if (validateMatch) {
     const diagramId = validateMatch[1];
     ensureDiagramExists(diagramId);
-    const result = await handleValidate({ diagramId });
+    const diagram = getDiagram(diagramId)!;
+    const viewer = diagram.modeler.getActiveViewer();
+    const elementRegistry = viewer.get('elementRegistry');
+    const allElements = getVisibleElements(elementRegistry);
+    const validation = buildValidation(elementRegistry);
+    const resultText = JSON.stringify(
+      {
+        success: true,
+        diagramId,
+        elementCount: allElements.length,
+        ...validation,
+        message:
+          validation.errorCount === 0 && validation.warningCount === 0
+            ? 'DMN diagram is valid with no issues.'
+            : `Found ${validation.errorCount} error(s) and ${validation.warningCount} warning(s).`,
+      },
+      null,
+      2
+    );
     return {
-      contents: [{ uri, mimeType: 'application/json', text: extractText(result) }],
+      contents: [{ uri, mimeType: 'application/json', text: resultText }],
     };
   }
 
@@ -149,9 +166,22 @@ export async function readResource(
   if (varsMatch) {
     const diagramId = varsMatch[1];
     ensureDiagramExists(diagramId);
-    const result = await handleListVariables({ diagramId });
+    const diagram = getDiagram(diagramId)!;
+    const viewer = diagram.modeler.getActiveViewer();
+    const elementRegistry = viewer.get('elementRegistry');
+    const allElements = getVisibleElements(elementRegistry);
+    const vars = buildVariables(allElements);
+    const resultText = JSON.stringify(
+      {
+        success: true,
+        ...vars,
+        message: `Found ${vars.totalVariables} variable(s): ${vars.inputVariables} input(s), ${vars.outputVariables} output(s)`,
+      },
+      null,
+      2
+    );
     return {
-      contents: [{ uri, mimeType: 'application/json', text: extractText(result) }],
+      contents: [{ uri, mimeType: 'application/json', text: resultText }],
     };
   }
 

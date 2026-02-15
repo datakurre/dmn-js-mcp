@@ -5,8 +5,9 @@
  */
 
 import { type ToolResult } from '../../types';
-import { typeMismatchError, invalidEnumError } from '../../errors';
+import { invalidEnumError } from '../../errors';
 import { requireDiagram, requireElement, jsonResult, syncXml, validateArgs } from '../helpers';
+import { requireDecisionTable } from './helpers';
 
 export interface EditCellArgs {
   diagramId: string;
@@ -29,18 +30,6 @@ function validateCellArgs(args: EditCellArgs): void {
   if (columnIndex === undefined || columnIndex === null) {
     throw invalidEnumError('columnIndex', String(columnIndex), ['0', '1', '2', '...']);
   }
-}
-
-/** Get the decision table from a business object, or throw. */
-function requireDecisionTable(bo: any, decisionId: string): any {
-  if (bo.$type !== 'dmn:Decision') {
-    throw typeMismatchError(decisionId, bo.$type, ['dmn:Decision']);
-  }
-  const logic = bo.decisionLogic;
-  if (!logic || logic.$type !== 'dmn:DecisionTable') {
-    throw typeMismatchError(decisionId, logic?.$type || 'none', ['dmn:DecisionTable']);
-  }
-  return logic;
 }
 
 export async function handleEditCell(args: EditCellArgs): Promise<ToolResult> {

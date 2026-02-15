@@ -6,8 +6,8 @@
  */
 
 import { type ToolResult } from '../../types';
-import { typeMismatchError } from '../../errors';
 import { requireDiagram, requireElement, jsonResult, syncXml, validateArgs } from '../helpers';
+import { requireDecisionTable } from './helpers';
 
 export interface AddRuleArgs {
   diagramId: string;
@@ -28,14 +28,7 @@ export async function handleAddRule(args: AddRuleArgs): Promise<ToolResult> {
   const element = requireElement(elementRegistry, decisionId);
 
   const bo = element.businessObject;
-  if (bo.$type !== 'dmn:Decision') {
-    throw typeMismatchError(decisionId, bo.$type, ['dmn:Decision']);
-  }
-
-  const logic = bo.decisionLogic;
-  if (!logic || logic.$type !== 'dmn:DecisionTable') {
-    throw typeMismatchError(decisionId, logic?.$type || 'none', ['dmn:DecisionTable']);
-  }
+  const logic = requireDecisionTable(bo, decisionId);
 
   const inputCount = logic.input?.length || 0;
   const outputCount = logic.output?.length || 0;

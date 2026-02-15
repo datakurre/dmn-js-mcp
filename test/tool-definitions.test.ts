@@ -5,7 +5,7 @@ describe('tool-definitions', () => {
   const toolNames = TOOL_DEFINITIONS.map((t) => t.name);
 
   test('exports the expected number of tools', () => {
-    expect(TOOL_DEFINITIONS.length).toBe(30);
+    expect(TOOL_DEFINITIONS.length).toBe(23);
   });
 
   test.each([
@@ -14,12 +14,9 @@ describe('tool-definitions', () => {
     'export_dmn',
     'delete_dmn_diagram',
     'list_dmn_diagrams',
-    'validate_dmn_diagram',
     'summarize_dmn_diagram',
     'dmn_history',
     'batch_dmn_operations',
-    'list_dmn_variables',
-    'set_dmn_camunda_properties',
     'layout_dmn_diagram',
     'add_dmn_element',
     'connect_dmn_elements',
@@ -28,16 +25,12 @@ describe('tool-definitions', () => {
     'list_dmn_elements',
     'get_dmn_element_properties',
     'set_dmn_element_properties',
-    'get_dmn_decision_table',
-    'set_dmn_hit_policy',
-    'add_dmn_input',
-    'add_dmn_output',
+    'get_dmn_decision_logic',
+    'add_dmn_column',
     'add_dmn_rule',
     'edit_dmn_cell',
     'remove_dmn_rule',
-    'analyze_dmn_decision_table',
     'set_dmn_literal_expression',
-    'get_dmn_literal_expression',
     'validate_dmn_feel_expression',
   ])("includes tool '%s'", (name) => {
     expect(toolNames).toContain(name);

@@ -1,17 +1,174 @@
 /**
  * Handler for set_dmn_element_properties tool.
  *
- * Updates properties on a DMN DRD element (name, and other standard attributes).
+ * Updates properties on a DMN DRD element: standard attributes (name, id),
+ * Camunda 7 extension properties (camunda:* prefix), and decision table
+ * settings (hitPolicy, aggregation).
+ *
+ * Camunda properties are validated against a whitelist per element type:
+ *   - Decision: camunda:versionTag, camunda:historyTimeToLive
+ *   - Definitions: camunda:diagramRelationId
+ *   - InputClause: camunda:inputVariable
+ *
+ * Decision table properties:
+ *   - hitPolicy: one of UNIQUE, FIRST, PRIORITY, ANY, COLLECT, RULE ORDER, OUTPUT ORDER
+ *   - aggregation: SUM, MIN, MAX, COUNT (only for COLLECT hit policy)
  */
 
 import { type ToolResult } from '../../types';
-import { requireDiagram, requireElement, jsonResult, syncXml, validateArgs } from '../helpers';
+import {
+  requireDiagram,
+  requireElement,
+  jsonResult,
+  syncXml,
+  validateArgs,
+  typeMismatchError,
+  invalidEnumError,
+} from '../helpers';
 
 export interface SetPropertiesArgs {
   diagramId: string;
   elementId: string;
   properties: Record<string, any>;
 }
+
+// ── Camunda property validation ────────────────────────────────────────────
+
+/** Known Camunda properties per DMN element type. */
+const CAMUNDA_PROPERTIES: Record<string, string[]> = {
+  'dmn:Decision': ['versionTag', 'historyTimeToLive'],
+  'dmn:Definitions': ['diagramRelationId'],
+  'dmn:InputClause': ['inputVariable'],
+};
+
+/** All known Camunda property names (without prefix). */
+const ALL_KNOWN_CAMUNDA = new Set<string>(Object.values(CAMUNDA_PROPERTIES).flat());
+
+/** Strip the camunda: prefix from a property name. */
+function normalizeCamundaKey(key: string): string {
+  return key.startsWith('camunda:') ? key.slice(8) : key;
+}
+
+/** Validate that a camunda property is allowed for the given element type. */
+function validateCamundaProperty(propName: string, elementType: string): void {
+  if (!ALL_KNOWN_CAMUNDA.has(propName)) {
+    throw invalidEnumError('property', propName, [...ALL_KNOWN_CAMUNDA]);
+  }
+  const allowed = CAMUNDA_PROPERTIES[elementType];
+  if (allowed && allowed.includes(propName)) return;
+  const supportedTypes = Object.entries(CAMUNDA_PROPERTIES)
+    .filter(([, props]) => props.includes(propName))
+    .map(([type]) => type);
+  throw typeMismatchError('element', elementType, supportedTypes);
+}
+
+/** Apply validated camunda properties to the business object's $attrs. */
+function applyCamundaAttrs(bo: any, props: Record<string, string>): string[] {
+  if (!bo.$attrs) bo.$attrs = {};
+  const applied: string[] = [];
+  for (const [key, value] of Object.entries(props)) {
+    const fullKey = `camunda:${key}`;
+    if (value === '' || value === null || value === undefined) {
+      delete bo.$attrs[fullKey];
+    } else {
+      bo.$attrs[fullKey] = value;
+    }
+    applied.push(fullKey);
+  }
+  return applied;
+}
+
+// ── Hit policy / decision table helpers ────────────────────────────────────
+
+const VALID_HIT_POLICIES = [
+  'UNIQUE',
+  'FIRST',
+  'PRIORITY',
+  'ANY',
+  'COLLECT',
+  'RULE ORDER',
+  'OUTPUT ORDER',
+] as const;
+
+const VALID_AGGREGATIONS = ['SUM', 'MIN', 'MAX', 'COUNT'] as const;
+
+/** Require a decision table from a business object, throwing on mismatch. */
+function requireDecisionTable(elementId: string, bo: any): any {
+  if (bo.$type !== 'dmn:Decision') {
+    throw typeMismatchError(elementId, bo.$type, ['dmn:Decision']);
+  }
+  const logic = bo.decisionLogic;
+  if (!logic || logic.$type !== 'dmn:DecisionTable') {
+    throw typeMismatchError(elementId, logic?.$type || 'none', ['dmn:DecisionTable']);
+  }
+  return logic;
+}
+
+/** Validate and apply hit-policy and/or aggregation to a decision table. */
+function applyHitPolicyProps(
+  elementId: string,
+  bo: any,
+  hitPolicy: string | undefined,
+  aggregation: string | undefined
+): void {
+  if (hitPolicy !== undefined) {
+    if (!VALID_HIT_POLICIES.includes(hitPolicy as any)) {
+      throw invalidEnumError('hitPolicy', hitPolicy, [...VALID_HIT_POLICIES]);
+    }
+    const logic = requireDecisionTable(elementId, bo);
+    logic.hitPolicy = hitPolicy;
+    if (aggregation && hitPolicy === 'COLLECT') {
+      if (!VALID_AGGREGATIONS.includes(aggregation as any)) {
+        throw invalidEnumError('aggregation', aggregation, [...VALID_AGGREGATIONS]);
+      }
+      logic.aggregation = aggregation;
+    } else {
+      delete logic.aggregation;
+    }
+  } else if (aggregation !== undefined) {
+    if (!VALID_AGGREGATIONS.includes(aggregation as any)) {
+      throw invalidEnumError('aggregation', aggregation, [...VALID_AGGREGATIONS]);
+    }
+    const logic = requireDecisionTable(elementId, bo);
+    if (logic.hitPolicy === 'COLLECT') {
+      logic.aggregation = aggregation;
+    }
+  }
+}
+
+/** Partition properties into standard, camunda, and decision-table buckets. */
+function partitionProperties(
+  properties: Record<string, any>,
+  elementType: string
+): {
+  standardProps: Record<string, any>;
+  camundaProps: Record<string, string>;
+  hitPolicy: string | undefined;
+  aggregation: string | undefined;
+} {
+  const standardProps: Record<string, any> = {};
+  const camundaProps: Record<string, string> = {};
+  let hitPolicy: string | undefined;
+  let aggregation: string | undefined;
+
+  for (const [key, value] of Object.entries(properties)) {
+    if (key === 'hitPolicy') {
+      hitPolicy = value;
+    } else if (key === 'aggregation') {
+      aggregation = value;
+    } else if (key.startsWith('camunda:')) {
+      const bare = normalizeCamundaKey(key);
+      validateCamundaProperty(bare, elementType);
+      camundaProps[bare] = value;
+    } else {
+      standardProps[key] = value;
+    }
+  }
+
+  return { standardProps, camundaProps, hitPolicy, aggregation };
+}
+
+// ── Main handler ───────────────────────────────────────────────────────────
 
 export async function handleSetProperties(args: SetPropertiesArgs): Promise<ToolResult> {
   validateArgs(args, ['diagramId', 'elementId', 'properties']);
@@ -22,31 +179,25 @@ export async function handleSetProperties(args: SetPropertiesArgs): Promise<Tool
   const modeling = viewer.get('modeling');
   const elementRegistry = viewer.get('elementRegistry');
   const element = requireElement(elementRegistry, elementId);
+  const bo = element.businessObject;
 
-  // Separate camunda: prefixed properties from standard ones
-  const standardProps: Record<string, any> = {};
-  const camundaProps: Record<string, any> = {};
-  for (const [key, value] of Object.entries(properties)) {
-    if (key.startsWith('camunda:')) {
-      camundaProps[key] = value;
-    } else {
-      standardProps[key] = value;
-    }
-  }
+  const { standardProps, camundaProps, hitPolicy, aggregation } = partitionProperties(
+    properties,
+    bo.$type
+  );
 
-  // Apply standard properties
+  // Apply standard properties via modeling API
   if (Object.keys(standardProps).length > 0) {
     modeling.updateProperties(element, standardProps);
   }
 
   // Apply camunda properties via $attrs
   if (Object.keys(camundaProps).length > 0) {
-    const bo = element.businessObject;
-    if (!bo.$attrs) bo.$attrs = {};
-    for (const [key, value] of Object.entries(camundaProps)) {
-      bo.$attrs[key] = value;
-    }
+    applyCamundaAttrs(bo, camundaProps);
   }
+
+  // Apply hit-policy / aggregation to the decision table
+  applyHitPolicyProps(elementId, bo, hitPolicy, aggregation);
 
   await syncXml(diagram);
 
@@ -61,8 +212,10 @@ export async function handleSetProperties(args: SetPropertiesArgs): Promise<Tool
 export const TOOL_DEFINITION = {
   name: 'set_dmn_element_properties',
   description:
-    'Set properties on a DMN DRD element. Supports standard DMN attributes (name, id) ' +
-    'and Camunda extension properties (camunda:* prefix).',
+    'Set properties on a DMN DRD element. Supports standard DMN attributes (name, id), ' +
+    'Camunda extension properties (camunda:versionTag, camunda:historyTimeToLive, ' +
+    'camunda:diagramRelationId — prefix is required), and decision table ' +
+    'settings (hitPolicy, aggregation). Set a camunda property to empty string to remove it.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -71,7 +224,8 @@ export const TOOL_DEFINITION = {
       properties: {
         type: 'object',
         description:
-          'Key-value map of properties to set. Use camunda: prefix for Camunda properties.',
+          'Key-value map of properties to set. Use camunda: prefix for Camunda properties ' +
+          '(e.g. "camunda:versionTag"). Use hitPolicy / aggregation for decision table settings.',
       },
     },
     required: ['diagramId', 'elementId', 'properties'],

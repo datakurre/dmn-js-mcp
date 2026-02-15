@@ -57,8 +57,8 @@ export async function handleImportXml(args: ImportXmlArgs): Promise<ToolResult> 
         description: 'List all elements in the imported diagram to understand its structure.',
       },
       {
-        tool: 'get_dmn_decision_table',
-        description: 'Inspect the decision table of a decision element.',
+        tool: 'get_dmn_decision_logic',
+        description: 'Inspect the decision logic of a decision element.',
       },
     ],
   });
